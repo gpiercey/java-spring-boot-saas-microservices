@@ -1,0 +1,9 @@
+**/*.md
+**/*.sh
+**/target
+**/.idea
+**/*.iws
+**/*.iml
+**/*.ipr
+**/.vscode
+**/dependency-reduced-pom.xml

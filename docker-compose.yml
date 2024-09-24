@@ -1,0 +1,115 @@
+services:
+
+  microservice-auth:
+    build:
+      context: microservice-auth
+      dockerfile: Dockerfile
+    image: microservice-auth:latest
+    container_name: microservice-auth
+    restart: always
+    ports:
+      - "8001:8001"
+    networks:
+      - internal-network
+
+  microservice-userdata:
+    build:
+      context: microservice-userdata
+      dockerfile: Dockerfile
+    image: microservice-userdata:latest
+    container_name: microservice-userdata
+    restart: always
+    ports:
+      - "8002:8002"
+    networks:
+      - internal-network
+
+  microservice-company:
+    build:
+      context: microservice-company
+      dockerfile: Dockerfile  
+    image: microservice-company:latest
+    container_name: microservice-company
+    restart: always
+    ports:
+      - "8003:8003"
+    networks:
+      - internal-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    networks:
+      - internal-network
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGODB_USERNAME=admin
+      - MONGODB_PASSWORD=admin
+    volumes:
+      - mongodb_data:/tmp/dockerized/mongodb/data/db
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command:
+      - --requirepass admin
+    networks:
+      - internal-network
+    volumes:
+      - redis_data:/tmp/dockerized/redis/data
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    networks:
+      - internal-network
+    command: -config.file=/etc/loki/local-config.yaml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - internal-network
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+        - name: Loki
+          type: loki
+          access: proxy 
+          orgId: 1
+          url: http://loki:3100
+          basicAuth: false
+          isDefault: true
+          version: 1
+          editable: false
+        EOF
+        /run.sh
+    depends_on:
+      - loki
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  internal-network:
+    driver: bridge

@@ -1,0 +1,40 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{YYYY/MM/DD HH:mm:ss.SSS} [%thread] %-5level %logger{36} | %msg %ex %n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CENTRAL" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <!-- NOTE: this will fail using the docker bridge network, if you replace localhost with loki it will -->
+            <!-- still resolve to localhost. This is a known issue with loki4j and is unavoidable so you can -->
+            <!-- expect it to work when running your service in the debugger but not using docker compose. It -->
+            <!-- should work fine out it in the wild with proper DNS though. -->
+            <url>http://localhost:3100/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>service=userdata,host=${HOSTNAME}</pattern>
+            </label>
+            <message>
+                <pattern>%d{YYYY/MM/DD HH:mm:ss.SSS} [${HOSTNAME}] %-5level %logger{36} | %msg %ex %n</pattern>
+            </message>
+        </format>
+    </appender>
+
+    <!-- NOTE: trading off possibility of loss for performance, if your priorities are different don't use async appender -->
+    <appender name="CONSOLE_ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="CONSOLE"/>
+    </appender>
+
+    <!-- NOTE: trading off possibility of loss for performance, if your priorities are different don't use async appender -->
+    <appender name="CENTRAL_ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="CENTRAL"/>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="CONSOLE_ASYNC"/>
+        <appender-ref ref="CENTRAL_ASYNC"/>
+    </root>
+</configuration>
